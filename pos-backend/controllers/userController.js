@@ -1,0 +1,120 @@
+const createHttpError = require("http-errors");
+const User = require("../models/userModel");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const config = require("../config/config");
+
+// ================= REGISTER =================
+const register = async (req, res, next) => {
+  try {
+    const { name, phone, email, password, role } = req.body;
+
+    if (!name || !phone || !email || !password || !role) {
+      return next(createHttpError(400, "All fields are required!"));
+    }
+
+    const isUserPresent = await User.findOne({ email });
+    if (isUserPresent) {
+      return next(createHttpError(400, "User already exists!"));
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      name,
+      phone,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully!",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ================= LOGIN =================
+const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return next(createHttpError(400, "All fields are required!"));
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return next(createHttpError(401, "Invalid credentials"));
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return next(createHttpError(401, "Invalid credentials"));
+    }
+
+    const accessToken = jwt.sign(
+      { _id: user._id },
+      config.accessTokenSecret,
+      { expiresIn: "1d" }
+    );
+
+    // ✅ FIXED COOKIE
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/", // VERY IMPORTANT
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ================= GET USER =================
+const getUserData = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ================= LOGOUT =================
+const logout = async (req, res, next) => {
+  try {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/", // MUST MATCH LOGIN
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getUserData, logout };
