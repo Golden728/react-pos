@@ -13,7 +13,10 @@ connectDB();
 // ✅ IMPORTANT CORS FIX
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://imaginative-cendol-5b0aca.netlify.app",
+    ],
     credentials: true,
   })
 );
