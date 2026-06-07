@@ -68,11 +68,11 @@ const login = async (req, res, next) => {
 
     // ✅ FIXED COOKIE
     res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      path: "/", // VERY IMPORTANT
-    });
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  path: "/",
+});
 
     res.status(200).json({
       success: true,
@@ -102,11 +102,11 @@ const getUserData = async (req, res, next) => {
 const logout = async (req, res, next) => {
   try {
     res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      path: "/", // MUST MATCH LOGIN
-    });
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  path: "/",
+});
 
     res.status(200).json({
       success: true,
